@@ -5,7 +5,8 @@ from contextlib import contextmanager
 from copy import deepcopy
 import math
 from pathlib import Path
-
+import glob
+import os
 import sys
 import torch
 from torch import optim, nn
@@ -94,10 +95,10 @@ class DiffusionUncond(pl.LightningModule):
         self.diffusion_ema = deepcopy(self.diffusion)
         self.rng = torch.quasirandom.SobolEngine(1, scramble=True, seed=global_args.seed)
         self.ema_decay = global_args.ema_decay
-        
+
     def configure_optimizers(self):
         return optim.Adam([*self.diffusion.parameters()], lr=4e-5)
-  
+
     def training_step(self, batch, batch_idx):
         reals = batch[0]
 
@@ -137,6 +138,22 @@ class ExceptionCallback(pl.Callback):
     def on_exception(self, trainer, module, err):
         print(f'{type(err).__name__}: {err}', file=sys.stderr)
 
+class CleandownKaggleCallback(pl.Callback):
+    def __init__(self, global_args):
+        super().__init__()
+        self.save_path = global_args.save_path
+
+    def on_train_batch_end(self, trainer, module, outputs, batch, batch_idx):
+
+        list_of_files = glob.glob(f'{self.save_path}/*poch*step*.ckpt')
+        if not list_of_files:
+            return
+        full_path = [("{0}".format(x)).replace('//','/') for x in list_of_files]
+        if len(list_of_files) > 1:
+            oldest_file = min(full_path, key=os.path.getctime)
+            print('\nremoving', oldest_file)
+            os.unlink(oldest_file)
+            print(len(list_of_files) -1, 'checkpoints left')
 
 class DemoCallback(pl.Callback):
     def __init__(self, global_args):
@@ -151,13 +168,13 @@ class DemoCallback(pl.Callback):
     @rank_zero_only
     @torch.no_grad()
     #def on_train_epoch_end(self, trainer, module):
-    def on_train_batch_end(self, trainer, module, outputs, batch, batch_idx):        
-  
+    def on_train_batch_end(self, trainer, module, outputs, batch, batch_idx):
+
         if (trainer.global_step - 1) % self.demo_every != 0 or self.last_demo_step == trainer.global_step:
             return
-        
+
         self.last_demo_step = trainer.global_step
-    
+
         noise = torch.randn([self.num_demos, 2, self.demo_samples]).to(module.device)
 
         try:
@@ -167,7 +184,7 @@ class DemoCallback(pl.Callback):
             fakes = rearrange(fakes, 'b d n -> d (b n)')
 
             log_dict = {}
-            
+
             filename = f'demo_{trainer.global_step:08}.wav'
             fakes = fakes.clamp(-1, 1).mul(32767).to(torch.int16).cpu()
             torchaudio.save(filename, fakes, self.sample_rate)
@@ -176,7 +193,7 @@ class DemoCallback(pl.Callback):
             log_dict[f'demo'] = wandb.Audio(filename,
                                                 sample_rate=self.sample_rate,
                                                 caption=f'Demo')
-        
+
             log_dict[f'demo_melspec_left'] = wandb.Image(audio_spectrogram_image(fakes))
 
             trainer.logger.experiment.log(log_dict, step=trainer.global_step)
@@ -201,6 +218,7 @@ def main():
     wandb_logger = pl.loggers.WandbLogger(project=args.name)
 
     exc_callback = ExceptionCallback()
+    kaggle_callback = CleandownKaggleCallback(args)
     ckpt_callback = pl.callbacks.ModelCheckpoint(every_n_train_steps=args.checkpoint_every, save_top_k=-1, dirpath=save_path)
     demo_callback = DemoCallback(args)
 
@@ -215,8 +233,8 @@ def main():
         # num_nodes = args.num_nodes,
         # strategy='ddp',
         precision=16,
-        accumulate_grad_batches=args.accum_batches, 
-        callbacks=[ckpt_callback, demo_callback, exc_callback],
+        accumulate_grad_batches=args.accum_batches,
+        callbacks=[ckpt_callback, kaggle_callback, demo_callback, exc_callback],
         logger=wandb_logger,
         log_every_n_steps=1,
         max_epochs=10000000,
@@ -226,4 +244,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
