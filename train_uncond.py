@@ -7,6 +7,7 @@ import math
 from pathlib import Path
 import glob
 import os
+from datetime import datetime
 import sys
 import torch
 from torch import optim, nn
@@ -144,7 +145,6 @@ class CleandownKaggleCallback(pl.Callback):
         self.save_path = global_args.save_path
 
     def on_train_batch_end(self, trainer, module, outputs, batch, batch_idx):
-
         list_of_files = glob.glob(f'{self.save_path}/*poch*step*.ckpt')
         if not list_of_files:
             return
@@ -152,8 +152,10 @@ class CleandownKaggleCallback(pl.Callback):
         if len(list_of_files) > 1:
             oldest_file = min(full_path, key=os.path.getctime)
             print('\nremoving', oldest_file)
-            os.unlink(oldest_file)
-            print(len(list_of_files) -1, 'checkpoints left')
+            os.unlink(oldest_file)          
+            now = datetime.now()
+            current_time = now.strftime("%H:%M:%S")
+            print(len(list_of_files) -1, 'checkpoints left', list_of_files[0] 'at', current_time)
 
 class DemoCallback(pl.Callback):
     def __init__(self, global_args):
