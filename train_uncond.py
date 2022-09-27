@@ -155,7 +155,7 @@ class CleandownKaggleCallback(pl.Callback):
             os.unlink(oldest_file)          
             now = datetime.now()
             current_time = now.strftime("%H:%M:%S")
-            print(len(list_of_files) -1, 'checkpoints left', list_of_files[0] 'at', current_time)
+            print(len(list_of_files) -1, 'checkpoints left', list_of_files[0], 'at', current_time)
 
 class DemoCallback(pl.Callback):
     def __init__(self, global_args):
