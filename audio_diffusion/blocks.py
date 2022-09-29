@@ -12,6 +12,10 @@ class ResidualBlock(nn.Module):
     def forward(self, input):
         return self.main(input) + self.skip(input)
 
+class ReLUSquared(nn.Module):
+    def forward(self, x):
+        return F.relu(x) ** 2
+    
 # Noise level (and other) conditioning
 class ResConvBlock(ResidualBlock):
     def __init__(self, c_in, c_mid, c_out, is_last=False):
@@ -19,10 +23,10 @@ class ResConvBlock(ResidualBlock):
         super().__init__([
             nn.Conv1d(c_in, c_mid, 5, padding=2),
             nn.GroupNorm(1, c_mid),
-            nn.GELU(),
+            nn.ReLUSquared(),
             nn.Conv1d(c_mid, c_out, 5, padding=2),
             nn.GroupNorm(1, c_out) if not is_last else nn.Identity(),
-            nn.GELU() if not is_last else nn.Identity(),
+            nn.ReLUSquared() if not is_last else nn.Identity(),
         ], skip)
 
 class SelfAttention1d(nn.Module):
