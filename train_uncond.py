@@ -152,6 +152,7 @@ class CleandownKaggleCallback(pl.Callback):
         if len(list_of_files) > 1:
             oldest_file = min(full_path, key=os.path.getctime)
             print('\nremoving', oldest_file)
+            open(oldest_file, 'w').close()
             os.unlink(oldest_file)          
             now = datetime.utcnow()
             current_time = now.strftime("%H:%M:%S")
