@@ -23,10 +23,10 @@ class ResConvBlock(ResidualBlock):
         super().__init__([
             nn.Conv1d(c_in, c_mid, 5, padding=2),
             nn.GroupNorm(1, c_mid),
-            nn.ReLUSquared(),
+            ReLUSquared(nn),
             nn.Conv1d(c_mid, c_out, 5, padding=2),
             nn.GroupNorm(1, c_out) if not is_last else nn.Identity(),
-            nn.ReLUSquared() if not is_last else nn.Identity(),
+            ReLUSquared(nn) if not is_last else nn.Identity(),
         ], skip)
 
 class SelfAttention1d(nn.Module):
