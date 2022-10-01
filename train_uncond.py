@@ -223,7 +223,7 @@ def main():
 
     exc_callback = ExceptionCallback()
     kaggle_callback = CleandownKaggleCallback(args)
-    ckpt_callback = pl.callbacks.ModelCheckpoint(every_n_train_steps=args.checkpoint_every, save_top_k=-1, dirpath=save_path, save_on_train_epoch_end=True)
+    ckpt_callback = pl.callbacks.ModelCheckpoint(every_n_train_steps=args.checkpoint_every, save_top_k=-1, dirpath=save_path, save_on_train_epoch_end=True, save_last=True)
     demo_callback = DemoCallback(args)
 
     diffusion_model = DiffusionUncond(args)
