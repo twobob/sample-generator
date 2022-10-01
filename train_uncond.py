@@ -16,6 +16,7 @@ from torch.utils import data
 from tqdm import trange
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.callbacks import Timer
 from einops import rearrange
 import torchaudio
 import wandb
@@ -230,6 +231,8 @@ def main():
     wandb_logger.watch(diffusion_model)
     push_wandb_config(wandb_logger, args)
 
+    timer = Timer(duration= args.duration)
+    
     diffusion_trainer = pl.Trainer(
         gpus=args.num_gpus,
         accelerator="gpu",
@@ -237,7 +240,7 @@ def main():
         # strategy='ddp',
         precision=16,
         accumulate_grad_batches=args.accum_batches,
-        callbacks=[ckpt_callback, kaggle_callback, demo_callback, exc_callback],
+        callbacks=[ckpt_callback, kaggle_callback, demo_callback, exc_callback, timer],
         logger=wandb_logger,
         log_every_n_steps=1,
         max_epochs=10000000,
