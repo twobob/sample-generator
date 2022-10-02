@@ -7,7 +7,7 @@ import math
 from pathlib import Path
 import glob
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 import sys
 import torch
 from torch import optim, nn
@@ -157,7 +157,8 @@ class CleandownKaggleCallback(pl.Callback):
             os.unlink(oldest_file)          
             now = datetime.utcnow()
             current_time = now.strftime("%H:%M:%S")
-            print(len(list_of_files) -1, 'checkpoints left', list_of_files[0], 'at', current_time)
+            zone = datetime.now(timezone.utc).astimezone().tzname()
+            print(len(list_of_files) -1, 'checkpoints left', list_of_files[0], 'at', current_time, zone)
 
 class DemoCallback(pl.Callback):
     def __init__(self, global_args):
