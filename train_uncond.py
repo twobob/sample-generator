@@ -144,8 +144,14 @@ class CleandownKaggleCallback(pl.Callback):
     def __init__(self, global_args):
         super().__init__()
         self.save_path = global_args.save_path
+        self.checkpoint_every = global_args.checkpoint_every
+        self.last_cleardown_step = -1
 
     def on_train_batch_end(self, trainer, module, outputs, batch, batch_idx):
+        if (trainer.global_step - 1) % self.checkpoint_every != 0 or self.last_cleardown_step == trainer.global_step:
+            return
+        self.last_cleardown_step = trainer.global_step
+        
         list_of_files = glob.glob(f'{self.save_path}/*poch*step*.ckpt')
         if not list_of_files:
             return
