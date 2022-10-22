@@ -171,7 +171,7 @@ class DemoCallback(pl.Callback):
         super().__init__()
         self.demo_every = global_args.demo_every
         self.num_demos = global_args.num_demos
-        self.demo_samples = global_args.sample_size
+        self.demo_samples = global_args.sample_size * 2
         self.demo_steps = global_args.demo_steps
         self.sample_rate = global_args.sample_rate
         self.last_demo_step = -1
